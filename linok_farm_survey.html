@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LINOK — Farm Site Survey</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; background: #f4f6f9; color: #1a1a1a; min-height: 100vh; }
+  .page { max-width: 640px; margin: 0 auto; padding: 2rem 1.25rem 4rem; }
+
+  .header { border-bottom: 2.5px solid #1B6CA8; padding-bottom: 1.1rem; margin-bottom: 1.75rem; }
+  .logo { font-size: 22px; font-weight: 600; color: #1B6CA8; letter-spacing: -0.5px; }
+  .logo span { color: #666; font-weight: 400; font-size: 15px; margin-left: 8px; }
+  .tagline { font-size: 13px; color: #888; margin-top: 4px; }
+
+  .progress-wrap { margin-bottom: 1.75rem; }
+  .progress-bar { background: #e0e0e0; border-radius: 4px; height: 4px; }
+  .progress-fill { background: #1B6CA8; height: 4px; border-radius: 4px; transition: width 0.4s ease; }
+  .progress-label { font-size: 12px; color: #999; margin-top: 6px; }
+
+  .section { display: none; }
+  .section.active { display: block; }
+
+  .section-num { font-size: 11px; font-weight: 600; color: #1B6CA8; text-transform: uppercase; letter-spacing: 1.2px; margin-bottom: 3px; }
+  .section-title { font-size: 21px; font-weight: 600; color: #111; margin-bottom: 4px; }
+  .section-desc { font-size: 14px; color: #777; margin-bottom: 1.5rem; }
+
+  .field { margin-bottom: 1.1rem; }
+  .field label { display: block; font-size: 13px; font-weight: 600; color: #333; margin-bottom: 4px; }
+  .field .hint { font-size: 12px; color: #999; margin-bottom: 4px; }
+  .field input, .field select, .field textarea {
+    width: 100%; padding: 9px 12px; font-size: 14px;
+    border: 1px solid #d0d5dd; border-radius: 8px;
+    background: #fff; color: #1a1a1a;
+    font-family: inherit; outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus {
+    border-color: #1B6CA8; box-shadow: 0 0 0 3px rgba(27,108,168,0.12);
+  }
+  .field textarea { resize: vertical; min-height: 90px; }
+
+  .radio-group { display: flex; gap: 8px; flex-wrap: wrap; }
+  .radio-opt {
+    display: flex; align-items: center; gap: 6px; cursor: pointer;
+    background: #fff; border: 1px solid #d0d5dd; border-radius: 8px;
+    padding: 8px 16px; font-size: 13px; color: #333;
+    transition: border-color 0.15s, background 0.15s; user-select: none;
+  }
+  .radio-opt:hover { border-color: #1B6CA8; }
+  .radio-opt.selected { border-color: #1B6CA8; background: #EAF2FB; color: #1B6CA8; font-weight: 600; }
+  .radio-opt input { display: none; }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 480px) { .two-col { grid-template-columns: 1fr; } }
+
+  .divider { height: 1px; background: #eee; margin: 1.25rem 0; }
+
+  .nav { display: flex; justify-content: space-between; align-items: center; margin-top: 2rem; padding-top: 1.25rem; border-top: 1px solid #eee; }
+  .btn { padding: 10px 24px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; border: 1px solid #d0d5dd; background: #fff; color: #333; font-family: inherit; transition: background 0.15s; }
+  .btn:hover { background: #f5f5f5; }
+  .btn.primary { background: #1B6CA8; color: #fff; border-color: #1B6CA8; }
+  .btn.primary:hover { background: #155a8e; }
+  .btn:disabled { opacity: 0.38; cursor: not-allowed; }
+
+  .summary-section-title { font-size: 11px; font-weight: 600; color: #1B6CA8; text-transform: uppercase; letter-spacing: 1px; margin: 1.1rem 0 6px; }
+  .summary-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; padding: 0 1rem; margin-bottom: 0.5rem; }
+  .summary-row { display: flex; justify-content: space-between; align-items: flex-start; padding: 10px 0; font-size: 13px; border-bottom: 1px solid #f0f0f0; gap: 12px; }
+  .summary-row:last-child { border-bottom: none; }
+  .s-label { color: #888; white-space: nowrap; }
+  .s-val { color: #111; font-weight: 600; text-align: right; }
+
+  .success { text-align: center; padding: 3rem 0 2rem; }
+  .success-icon { width: 56px; height: 56px; border-radius: 50%; background: #EAF2FB; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.25rem; }
+  .success-title { font-size: 21px; font-weight: 600; color: #111; margin-bottom: 8px; }
+  .success-sub { font-size: 14px; color: #777; max-width: 340px; margin: 0 auto 1.5rem; line-height: 1.6; }
+  .success-contact { font-size: 13px; color: #999; }
+  .success-contact a { color: #1B6CA8; text-decoration: none; }
+
+  .print-btn { display: inline-block; margin-top: 1.25rem; padding: 9px 22px; background: #f0f4f8; border: 1px solid #c8d6e5; border-radius: 8px; font-size: 13px; font-weight: 600; color: #1B6CA8; cursor: pointer; font-family: inherit; }
+  .print-btn:hover { background: #dce9f5; }
+
+  @media print {
+    body { background: #fff; }
+    .nav, .print-btn { display: none; }
+    .section { display: block !important; }
+    .progress-wrap { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="header">
+    <div class="logo">LINOK <span>Precision Dairy Solutions</span></div>
+    <div class="tagline">Farm Site Survey — please complete before your installation visit</div>
+  </div>
+
+  <div class="progress-wrap">
+    <div class="progress-bar"><div class="progress-fill" id="prog" style="width:20%"></div></div>
+    <div class="progress-label" id="prog-label">Step 1 of 5</div>
+  </div>
+
+  <!-- SECTION 1 -->
+  <div class="section active" id="s1">
+    <div class="section-num">Section 1</div>
+    <div class="section-title">Farm Details</div>
+    <div class="section-desc">Basic information about your operation and who we should contact.</div>
+    <div class="two-col">
+      <div class="field"><label>Farm / Operation Name</label><input type="text" id="farm_name" placeholder="e.g. Smith Family Dairy"></div>
+      <div class="field"><label>Contact Person</label><input type="text" id="contact_name" placeholder="Full name"></div>
+    </div>
+    <div class="two-col">
+      <div class="field"><label>Phone Number</label><input type="tel" id="phone" placeholder="+1 (555) 000-0000"></div>
+      <div class="field"><label>Email Address</label><input type="email" id="email" placeholder="you@farm.com"></div>
+    </div>
+    <div class="field"><label>Farm Address</label><input type="text" id="address" placeholder="Street, City, State, ZIP"></div>
+  </div>
+
+  <!-- SECTION 2 -->
+  <div class="section" id="s2">
+    <div class="section-num">Section 2</div>
+    <div class="section-title">Milking Setup</div>
+    <div class="section-desc">Tell us about your milking parlor so we can plan the right configuration.</div>
+    <div class="field">
+      <label>Milking Parlor Type</label>
+      <div class="radio-group" id="parlor_type">
+        <label class="radio-opt"><input type="radio" name="parlor" value="Herringbone">Herringbone</label>
+        <label class="radio-opt"><input type="radio" name="parlor" value="Parallel">Parallel</label>
+        <label class="radio-opt"><input type="radio" name="parlor" value="Rotary">Rotary</label>
+        <label class="radio-opt"><input type="radio" name="parlor" value="Other">Other</label>
+      </div>
+    </div>
+    <div class="two-col">
+      <div class="field"><label>Total Milking Stalls</label><input type="number" id="stalls" placeholder="e.g. 24" min="1"></div>
+      <div class="field"><label>Number of Rows</label><input type="number" id="rows" placeholder="e.g. 2" min="1"></div>
+    </div>
+    <div class="two-col">
+      <div class="field"><label>Total Herd Size (cows)</label><input type="number" id="cows" placeholder="e.g. 300" min="1"></div>
+      <div class="field"><label>Daily Milkings</label>
+        <select id="milkings">
+          <option value="">Select...</option>
+          <option>2 times/day</option>
+          <option>3 times/day</option>
+          <option>Other</option>
+        </select>
+      </div>
+    </div>
+    <div class="field"><label>Milking Schedule</label><div class="hint">Approximate times, e.g. 5:00 AM / 1:00 PM / 9:00 PM</div><input type="text" id="schedule" placeholder="e.g. 5:00 AM / 1:00 PM"></div>
+    <div class="field"><label>Existing Herd Management System</label><div class="hint">Brand name, or leave blank if none</div><input type="text" id="hms" placeholder="e.g. DairyComp, None"></div>
+  </div>
+
+  <!-- SECTION 3 -->
+  <div class="section" id="s3">
+    <div class="section-num">Section 3</div>
+    <div class="section-title">Power & Network</div>
+    <div class="section-desc">We need to verify the electrical and network setup before we arrive.</div>
+    <div class="field">
+      <label>Power outlets available near each stall?</label>
+      <div class="radio-group">
+        <label class="radio-opt"><input type="radio" name="power" value="Yes">Yes</label>
+        <label class="radio-opt"><input type="radio" name="power" value="No">No</label>
+        <label class="radio-opt"><input type="radio" name="power" value="Partial">Partially</label>
+      </div>
+    </div>
+    <div class="field">
+      <label>Existing internet / local router on-site?</label>
+      <div class="radio-group">
+        <label class="radio-opt"><input type="radio" name="internet" value="Yes">Yes</label>
+        <label class="radio-opt"><input type="radio" name="internet" value="No">No</label>
+      </div>
+    </div>
+    <div class="field"><label>Router / Network Cabinet Location</label><input type="text" id="router_loc" placeholder="e.g. Farm office, near parlor entrance"></div>
+    <div class="field">
+      <label>Backup generator on the farm?</label>
+      <div class="radio-group">
+        <label class="radio-opt"><input type="radio" name="gen" value="Yes">Yes</label>
+        <label class="radio-opt"><input type="radio" name="gen" value="No">No</label>
+      </div>
+    </div>
+    <div class="two-col">
+      <div class="field"><label>On-site Technical Contact</label><input type="text" id="tech_name" placeholder="Name"></div>
+      <div class="field"><label>Technical Contact Phone</label><input type="tel" id="tech_phone" placeholder="+1 (555) 000-0000"></div>
+    </div>
+  </div>
+
+  <!-- SECTION 4 -->
+  <div class="section" id="s4">
+    <div class="section-num">Section 4</div>
+    <div class="section-title">Physical Infrastructure</div>
+    <div class="section-desc">Details about the parlor space and entry point for the RFID system.</div>
+    <div class="field">
+      <label>Wall material in the parlor</label>
+      <div class="radio-group">
+        <label class="radio-opt"><input type="radio" name="wall" value="Concrete">Concrete</label>
+        <label class="radio-opt"><input type="radio" name="wall" value="Brick">Brick</label>
+        <label class="radio-opt"><input type="radio" name="wall" value="Metal">Metal</label>
+        <label class="radio-opt"><input type="radio" name="wall" value="Other">Other</label>
+      </div>
+    </div>
+    <div class="field">
+      <label>Clear wall space (~50 cm) next to each stall?</label>
+      <div class="radio-group">
+        <label class="radio-opt"><input type="radio" name="wspace" value="Yes">Yes</label>
+        <label class="radio-opt"><input type="radio" name="wspace" value="No">No</label>
+        <label class="radio-opt"><input type="radio" name="wspace" value="Some stalls">Some stalls</label>
+      </div>
+    </div>
+    <div class="two-col">
+      <div class="field"><label>Distance — Parlor to Network Cabinet</label><input type="text" id="cable_dist" placeholder="e.g. 20 meters / 65 feet"></div>
+      <div class="field"><label>Parlor Entry Gate Width</label><input type="text" id="gate_width" placeholder="e.g. 80 cm / 32 inches"></div>
+    </div>
+    <div class="two-col">
+      <div class="field"><label>Number of Entry Points</label><input type="number" id="entry_points" placeholder="e.g. 1" min="1"></div>
+      <div class="field"><label>Floor Type at Entry</label>
+        <select id="floor_type">
+          <option value="">Select...</option>
+          <option>Concrete</option>
+          <option>Rubber mat over concrete</option>
+          <option>Other</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 5 -->
+  <div class="section" id="s5">
+    <div class="section-num">Section 5</div>
+    <div class="section-title">Additional Notes</div>
+    <div class="section-desc">Anything else we should know before arriving.</div>
+    <div class="field">
+      <label>Additional information</label>
+      <div class="hint">Access restrictions, ongoing construction, preferred schedule, special equipment, etc.</div>
+      <textarea id="notes" placeholder="Optional — any details that will help us prepare..."></textarea>
+    </div>
+    <div class="divider"></div>
+    <p style="font-size:13px; color:#999; line-height:1.6;">By submitting, you confirm this information is accurate. LINOK will review and be in touch before your installation visit.</p>
+  </div>
+
+  <!-- REVIEW -->
+  <div class="section" id="s_review">
+    <div class="section-num">Review</div>
+    <div class="section-title">Check your answers</div>
+    <div class="section-desc">Please review before submitting.</div>
+    <div id="review_content"></div>
+  </div>
+
+  <!-- DONE -->
+  <div class="section" id="s_done">
+    <div class="success">
+      <div class="success-icon">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#1B6CA8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+      </div>
+      <div class="success-title">Survey submitted!</div>
+      <div class="success-sub">Thank you. The LINOK team will review your responses and be in touch before your installation visit.</div>
+      <div class="success-contact">Questions? Contact <a href="mailto:support@linok.com">support@linok.com</a></div>
+      <button class="print-btn" onclick="window.print()">Print / Save as PDF</button>
+    </div>
+  </div>
+
+  <div class="nav" id="nav">
+    <button class="btn" id="btn_back" onclick="goBack()" disabled>Back</button>
+    <button class="btn primary" id="btn_next" onclick="goNext()">Next</button>
+  </div>
+
+</div>
+
+<script>
+const sections = ['s1','s2','s3','s4','s5','s_review','s_done'];
+let current = 0;
+
+document.querySelectorAll('.radio-group').forEach(group => {
+  group.querySelectorAll('.radio-opt').forEach(opt => {
+    opt.addEventListener('click', () => {
+      const name = opt.querySelector('input').name;
+      document.querySelectorAll(`input[name="${name}"]`).forEach(i => {
+        i.closest('.radio-opt').classList.remove('selected');
+      });
+      opt.classList.add('selected');
+      opt.querySelector('input').checked = true;
+    });
+  });
+});
+
+function v(id) { const e = document.getElementById(id); return e ? e.value.trim() : ''; }
+function r(name) { const e = document.querySelector(`input[name="${name}"]:checked`); return e ? e.value : ''; }
+
+function updateUI() {
+  const step = Math.min(current + 1, 5);
+  const pct = (step / 5) * 100;
+  document.getElementById('prog').style.width = pct + '%';
+  const lbl = document.getElementById('prog-label');
+  if (current < 5) lbl.textContent = `Step ${step} of 5`;
+  else if (current === 5) lbl.textContent = 'Review your answers';
+  else lbl.textContent = 'Complete';
+  document.getElementById('btn_back').disabled = current === 0;
+  const nb = document.getElementById('btn_next');
+  if (current === 4) nb.textContent = 'Review';
+  else if (current === 5) nb.textContent = 'Submit';
+  else nb.textContent = 'Next';
+  if (current >= 6) document.getElementById('nav').style.display = 'none';
+}
+
+function buildReview() {
+  const groups = [
+    { title: 'Farm Details', rows: [
+      ['Farm Name', v('farm_name')], ['Contact', v('contact_name')],
+      ['Phone', v('phone')], ['Email', v('email')], ['Address', v('address')]
+    ]},
+    { title: 'Milking Setup', rows: [
+      ['Parlor Type', r('parlor')], ['Stalls', v('stalls')], ['Rows', v('rows')],
+      ['Herd Size', v('cows') ? v('cows') + ' cows' : ''], ['Daily Milkings', v('milkings')],
+      ['Schedule', v('schedule')], ['Herd Management System', v('hms') || 'None']
+    ]},
+    { title: 'Power & Network', rows: [
+      ['Power at Stalls', r('power')], ['Internet On-site', r('internet')],
+      ['Router Location', v('router_loc')], ['Backup Generator', r('gen')],
+      ['Technical Contact', [v('tech_name'), v('tech_phone')].filter(Boolean).join(' — ')]
+    ]},
+    { title: 'Physical Infrastructure', rows: [
+      ['Wall Material', r('wall')], ['Wall Space', r('wspace')],
+      ['Distance to Cabinet', v('cable_dist')], ['Entry Gate Width', v('gate_width')],
+      ['Entry Points', v('entry_points')], ['Floor Type', v('floor_type')]
+    ]},
+    { title: 'Notes', rows: [['Additional Notes', v('notes') || 'None']] }
+  ];
+  let html = '';
+  groups.forEach(g => {
+    const filled = g.rows.filter(r => r[1]);
+    if (!filled.length) return;
+    html += `<div class="summary-section-title">${g.title}</div><div class="summary-card">`;
+    filled.forEach(row => {
+      html += `<div class="summary-row"><span class="s-label">${row[0]}</span><span class="s-val">${row[1]}</span></div>`;
+    });
+    html += '</div>';
+  });
+  document.getElementById('review_content').innerHTML = html;
+}
+
+function goNext() {
+  if (current === 4) buildReview();
+  if (current >= 6) return;
+  document.getElementById(sections[current]).classList.remove('active');
+  current++;
+  document.getElementById(sections[current]).classList.add('active');
+  updateUI();
+  window.scrollTo(0, 0);
+}
+
+function goBack() {
+  if (current === 0) return;
+  document.getElementById(sections[current]).classList.remove('active');
+  current--;
+  document.getElementById(sections[current]).classList.add('active');
+  updateUI();
+  window.scrollTo(0, 0);
+}
+
+updateUI();
+</script>
+</body>
+</html>
