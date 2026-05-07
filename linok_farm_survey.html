@@ -9,6 +9,18 @@
   body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; background: #f4f6f9; color: #1a1a1a; min-height: 100vh; }
   .page { max-width: 640px; margin: 0 auto; padding: 2rem 1.25rem 4rem; }
 
+  .gate { display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 1.5rem; }
+  .gate-card { background: #fff; border-radius: 14px; border: 1px solid #e0e4ea; padding: 2.5rem 2rem; max-width: 400px; width: 100%; text-align: center; }
+  .gate-logo { font-size: 22px; font-weight: 600; color: #1B6CA8; margin-bottom: 4px; }
+  .gate-logo span { color: #666; font-weight: 400; font-size: 15px; }
+  .gate-title { font-size: 18px; font-weight: 600; color: #111; margin: 1.25rem 0 6px; }
+  .gate-desc { font-size: 13px; color: #888; margin-bottom: 1.5rem; line-height: 1.6; }
+  .gate-input { width: 100%; padding: 10px 14px; font-size: 15px; border: 1px solid #d0d5dd; border-radius: 8px; background: #fff; color: #1a1a1a; font-family: inherit; outline: none; text-align: center; letter-spacing: 2px; transition: border-color 0.15s, box-shadow 0.15s; margin-bottom: 10px; }
+  .gate-input:focus { border-color: #1B6CA8; box-shadow: 0 0 0 3px rgba(27,108,168,0.12); }
+  .gate-btn { width: 100%; padding: 11px; background: #1B6CA8; color: #fff; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; font-family: inherit; transition: background 0.15s; }
+  .gate-btn:hover { background: #155a8e; }
+  .gate-error { font-size: 13px; color: #c0392b; margin-top: 8px; min-height: 18px; }
+
   .header { border-bottom: 2.5px solid #1B6CA8; padding-bottom: 1.1rem; margin-bottom: 1.75rem; }
   .logo { font-size: 22px; font-weight: 600; color: #1B6CA8; letter-spacing: -0.5px; }
   .logo span { color: #666; font-weight: 400; font-size: 15px; margin-left: 8px; }
@@ -90,7 +102,18 @@
 </style>
 </head>
 <body>
-<div class="page">
+<div class="gate" id="gate">
+  <div class="gate-card">
+    <div class="gate-logo">LINOK <span>Precision Dairy</span></div>
+    <div class="gate-title">Farm Site Survey</div>
+    <div class="gate-desc">This form is for authorized use only.<br>Please enter your access code to continue.</div>
+    <input class="gate-input" type="password" id="gate_input" placeholder="Access code" onkeydown="if(event.key==='Enter')checkCode()">
+    <button class="gate-btn" onclick="checkCode()">Enter</button>
+    <div class="gate-error" id="gate_error"></div>
+  </div>
+</div>
+
+<div class="page" id="main_page" style="display:none;">
 
   <div class="header">
     <div class="logo">LINOK <span>Precision Dairy Solutions</span></div>
@@ -269,6 +292,18 @@
 </div>
 
 <script>
+function checkCode() {
+  const input = document.getElementById('gate_input').value.trim();
+  if (input === 'cowmoo123!') {
+    document.getElementById('gate').style.display = 'none';
+    document.getElementById('main_page').style.display = 'block';
+  } else {
+    document.getElementById('gate_error').textContent = 'Incorrect access code. Please try again.';
+    document.getElementById('gate_input').value = '';
+    document.getElementById('gate_input').focus();
+  }
+}
+
 const sections = ['s1','s2','s3','s4','s5','s_review','s_done'];
 let current = 0;
 
