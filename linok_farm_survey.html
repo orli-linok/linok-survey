@@ -470,7 +470,7 @@ async function submitForm(){
     overlayText.textContent='Saving responses…';
     const formPayload = new FormData();
     formPayload.append('payload', JSON.stringify({action:'saveForm',data:formData}));
-    await fetch(SCRIPT_URL,{method:'POST',mode:'no-cors',body:formPayload});
+    await fetch(SCRIPT_URL,{method:'POST',mode:'',body:formPayload});
     const allPhotoGroups=[{label:'Router',key:'photos_router'},{label:'Power_Outlets',key:'photos_power'},{label:'PoE_Area',key:'photos_poe'},{label:'MIKA_Installation',key:'photos_mika'},{label:'Iron_Poles',key:'photos_poles'},{label:'Panoramic',key:'photos_panorama'},{label:'Entrance_Gates',key:'photos_entrance'},{label:'General',key:'photos_general'}];
     let uploaded=0;const total=Object.values(fileStores).reduce((a,arr)=>a+arr.length,0);
     for(const pg of allPhotoGroups){
@@ -480,7 +480,7 @@ async function submitForm(){
         const base64=await fileToBase64(file);
         const photoPayload = new FormData();
         photoPayload.append('payload', JSON.stringify({action:'uploadPhoto',farmName,timestamp,category:pg.label,filename:file.name,mimeType:file.type,data:base64}));
-        await fetch(SCRIPT_URL,{method:'POST',mode:'no-cors',body:photoPayload});
+        await fetch(SCRIPT_URL,{method:'POST',mode:'',body:photoPayload});
       }
     }
   }catch(err){console.error('Submit error:',err);}
