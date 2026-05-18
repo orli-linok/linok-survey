@@ -468,7 +468,7 @@ async function submitForm(){
   const formData={timestamp,farm_name:farmName,contact_name:v('contact_name'),phone:v('phone'),email:v('email'),address:v('address'),parlor_type:r('parlor'),stalls:v('stalls'),rows:v('rows'),herd_size:v('cows'),daily_milkings:v('milkings'),schedule:v('schedule'),hms:v('hms'),internet:r('internet'),router_location:v('router_loc'),power_outlets:r('power'),outlet_count:v('outlet_count'),poe_location:v('poe_location'),generator:r('gen'),tech_name:v('tech_name'),tech_phone:v('tech_phone'),dist_router_poe:v('dist_router_poe'),dist_poe_near:v('dist_poe_near'),dist_poe_far:v('dist_poe_far'),dist_entry_poe:v('dist_entry_poe'),cables:getCables(),wall_material:r('wall'),wall_space:r('wspace'),entry_points:v('entry_points'),gate_width:v('gate_width'),floor_type:v('floor_type'),rfid_poles:r('rfid'),notes:v('notes'),total_photos:totalPhotos()};
   try{
     overlayText.textContent='Saving responses…';
-    await fetch(SCRIPT_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'saveForm',data:formData})});
+    await fetch(SCRIPT_URL,{method:'POST',mode:'cors',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'saveForm',data:formData})});
     const allPhotoGroups=[{label:'Router',key:'photos_router'},{label:'Power_Outlets',key:'photos_power'},{label:'PoE_Area',key:'photos_poe'},{label:'MIKA_Installation',key:'photos_mika'},{label:'Iron_Poles',key:'photos_poles'},{label:'Panoramic',key:'photos_panorama'},{label:'Entrance_Gates',key:'photos_entrance'},{label:'General',key:'photos_general'}];
     let uploaded=0;const total=Object.values(fileStores).reduce((a,arr)=>a+arr.length,0);
     for(const pg of allPhotoGroups){
@@ -476,7 +476,7 @@ async function submitForm(){
         uploaded++;
         overlayText.textContent=`Uploading photos… (${uploaded}/${total})`;
         const base64=await fileToBase64(file);
-        await fetch(SCRIPT_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'uploadPhoto',farmName,timestamp,category:pg.label,filename:file.name,mimeType:file.type,data:base64})});
+        await fetch(SCRIPT_URL,{method:'POST',mode:'cors',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'uploadPhoto',farmName,timestamp,category:pg.label,filename:file.name,mimeType:file.type,data:base64})});
       }
     }
   }catch(err){console.error('Submit error:',err);}
