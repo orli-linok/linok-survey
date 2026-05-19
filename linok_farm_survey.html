@@ -1,242 +1,483 @@
-// ================================================================
-//  LINOK — Pre-Installation Survey · Google Apps Script
-//  הדבק את כל הקוד הזה ב-script.google.com
-//  הוראות הגדרה בתחתית הקובץ
-// ================================================================
-
-// ── הגדרות — מלא אחרי הרצת setup() ────────────────────────────
-var SPREADSHEET_ID   = '';   // ← הדבק כאן את ה-ID של ה-Sheet
-var PHOTOS_FOLDER_ID = '';   // ← הדבק כאן את ה-ID של תיקיית Drive
-// ───────────────────────────────────────────────────────────────
-
-
-// ================================================================
-//  SETUP — הרץ פעם אחת כדי ליצור Sheet + תיקיית Drive
-//  בחר "setup" מהתפריט → לחץ ▶ Run
-// ================================================================
-function setup() {
-  // יצירת Google Sheet
-  var ss = SpreadsheetApp.create('LINOK — Farm Survey Responses');
-  var sheet = ss.getActiveSheet();
-  sheet.setName('Responses');
-
-  // כותרות עמודות
-  var headers = [
-    'Timestamp', 'Farm Name', 'Contact Name', 'Phone', 'Email', 'Address',
-    'Parlor Type', 'Stalls', 'Rows', 'Herd Size', 'Daily Milkings',
-    'Schedule', 'HMS',
-    'Internet', 'Router Location', 'Power Outlets', 'Outlet Count',
-    'PoE Location', 'Generator', 'Tech Name', 'Tech Phone',
-    'Dist Router→PoE', 'Dist PoE→Nearest', 'Dist PoE→Farthest',
-    'Dist Entry→PoE', 'Cables',
-    'Wall Material', 'Wall Space', 'Entry Points', 'Gate Width',
-    'Floor Type', 'RFID Poles',
-    'Notes', 'Total Photos', 'Photos Folder Link'
-  ];
-  sheet.appendRow(headers);
-
-  // עיצוב שורת כותרת
-  var hRange = sheet.getRange(1, 1, 1, headers.length);
-  hRange.setBackground('#1B6CA8')
-        .setFontColor('#ffffff')
-        .setFontWeight('bold')
-        .setFontSize(11);
-  sheet.setFrozenRows(1);
-  sheet.setColumnWidth(1, 180);   // Timestamp
-  sheet.setColumnWidth(2, 160);   // Farm Name
-  sheet.setColumnWidth(35, 300);  // Photos Folder Link
-
-  // יצירת תיקיית Drive
-  var folder = DriveApp.createFolder('LINOK — Survey Photos');
-
-  // הדפסת ה-IDs ל-Logs
-  Logger.log('=== SETUP COMPLETE ===');
-  Logger.log('SPREADSHEET_ID   = ' + ss.getId());
-  Logger.log('PHOTOS_FOLDER_ID = ' + folder.getId());
-  Logger.log('');
-  Logger.log('העתק את שני ה-IDs והדבק אותם בחלק ה-CONFIG בראש הקובץ');
-  Logger.log('אחר כך: Deploy → New deployment');
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LINOK — Pre-Installation Site Survey</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --blue: #1B6CA8; --blue-dark: #134f7d; --blue-light: #EAF2FB; --blue-mid: #cde3f5;
+  --green: #1a9e6e; --green-light: #e6f7f1; --text: #111827; --text-2: #4b5563;
+  --text-3: #9ca3af; --border: #e5e7eb; --bg: #f8fafc; --white: #fff;
+  --red: #dc2626; --red-light: #fef2f2; --radius: 10px;
 }
+body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; line-height: 1.5; }
+.gate { display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 1.5rem; background: linear-gradient(135deg, #0f2942 0%, #1B6CA8 60%, #2a9fd6 100%); }
+.gate-card { background: var(--white); border-radius: 18px; padding: 2.5rem 2rem; max-width: 400px; width: 100%; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.25); }
+.gate-logo { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 1.5rem; }
+.gate-logo-mark { width: 40px; height: 40px; background: var(--blue); border-radius: 10px; display: flex; align-items: center; justify-content: center; }
+.gate-logo-mark svg { width: 22px; height: 22px; }
+.gate-logo-text { font-size: 20px; font-weight: 600; color: var(--blue); }
+.gate-logo-text span { color: var(--text-2); font-weight: 400; font-size: 14px; display: block; text-align: left; }
+.gate-title { font-size: 18px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+.gate-desc { font-size: 13px; color: var(--text-3); margin-bottom: 1.75rem; line-height: 1.6; }
+.gate-input { width: 100%; padding: 11px 14px; font-size: 15px; border: 1.5px solid var(--border); border-radius: var(--radius); background: var(--bg); color: var(--text); font-family: 'DM Mono', monospace; outline: none; text-align: center; letter-spacing: 3px; transition: border-color 0.15s; margin-bottom: 10px; }
+.gate-input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(27,108,168,0.12); }
+.gate-btn { width: 100%; padding: 12px; background: var(--blue); color: var(--white); border: none; border-radius: var(--radius); font-size: 15px; font-weight: 600; cursor: pointer; font-family: inherit; transition: background 0.15s; }
+.gate-btn:hover { background: var(--blue-dark); }
+.gate-error { font-size: 13px; color: var(--red); margin-top: 8px; min-height: 18px; }
+.page { max-width: 680px; margin: 0 auto; padding: 2rem 1.25rem 5rem; display: none; }
+.header { display: flex; align-items: center; gap: 12px; border-bottom: 2px solid var(--blue); padding-bottom: 1.1rem; margin-bottom: 1.75rem; }
+.header-logo-mark { width: 36px; height: 36px; background: var(--blue); border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.header-logo-mark svg { width: 20px; height: 20px; }
+.logo-text { font-size: 19px; font-weight: 600; color: var(--blue); }
+.logo-text span { color: var(--text-2); font-weight: 400; font-size: 13px; display: block; }
+.progress-wrap { margin-bottom: 2rem; }
+.steps-row { display: flex; gap: 4px; margin-bottom: 8px; }
+.step-dot { flex: 1; height: 4px; border-radius: 4px; background: var(--border); transition: background 0.3s; }
+.step-dot.done { background: var(--blue); }
+.step-dot.active { background: var(--blue); opacity: 0.5; }
+.progress-label { font-size: 12px; color: var(--text-3); font-family: 'DM Mono', monospace; }
+.section { display: none; animation: fadeIn 0.2s ease; }
+.section.active { display: block; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+.section-badge { display: inline-flex; align-items: center; gap: 6px; background: var(--blue-light); color: var(--blue); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 1.2px; padding: 4px 10px; border-radius: 20px; margin-bottom: 8px; }
+.section-title { font-size: 22px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+.section-desc { font-size: 14px; color: var(--text-2); margin-bottom: 1.75rem; line-height: 1.6; }
+.field { margin-bottom: 1.1rem; }
+.field label { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 5px; }
+.field label .req { color: var(--red); font-size: 11px; }
+.field .hint { font-size: 12px; color: var(--text-3); margin-bottom: 5px; line-height: 1.5; }
+.field input, .field select, .field textarea { width: 100%; padding: 10px 12px; font-size: 14px; border: 1.5px solid var(--border); border-radius: var(--radius); background: var(--white); color: var(--text); font-family: inherit; outline: none; transition: border-color 0.15s; }
+.field input:focus, .field select:focus, .field textarea:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(27,108,168,0.1); }
+.field input.error { border-color: var(--red); }
+.field textarea { resize: vertical; min-height: 90px; }
+.field-error { font-size: 12px; color: var(--red); margin-top: 4px; display: none; }
+.field-error.show { display: block; }
+.radio-group { display: flex; gap: 8px; flex-wrap: wrap; }
+.radio-opt { display: flex; align-items: center; gap: 6px; cursor: pointer; background: var(--white); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 8px 16px; font-size: 13px; color: var(--text-2); transition: border-color 0.15s, background 0.15s; user-select: none; }
+.radio-opt:hover { border-color: var(--blue); color: var(--blue); }
+.radio-opt.selected { border-color: var(--blue); background: var(--blue-light); color: var(--blue); font-weight: 600; }
+.radio-opt input { display: none; }
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 520px) { .two-col { grid-template-columns: 1fr; } }
+.divider { height: 1px; background: var(--border); margin: 1.5rem 0; }
+.section-sub { font-size: 11px; font-weight: 600; color: var(--text-3); text-transform: uppercase; letter-spacing: 1px; margin: 1.5rem 0 0.75rem; display: flex; align-items: center; gap: 8px; }
+.section-sub::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+.cable-card { background: var(--white); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 1rem 1rem 0.5rem; margin-bottom: 0.75rem; }
+.cable-card-title { font-size: 12px; font-weight: 600; color: var(--text-2); margin-bottom: 0.75rem; display: flex; align-items: center; gap: 6px; }
+.cable-list-item { display: flex; gap: 8px; align-items: center; margin-bottom: 6px; }
+.cable-list-item input { flex: 1; }
+.cable-list-item .cable-num { font-size: 12px; font-family: 'DM Mono', monospace; color: var(--text-3); width: 24px; text-align: right; flex-shrink: 0; }
+.cable-remove { background: none; border: none; cursor: pointer; padding: 4px; color: var(--text-3); border-radius: 4px; transition: color 0.1s; flex-shrink: 0; }
+.cable-remove:hover { color: var(--red); }
+.add-cable-btn { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; color: var(--blue); background: none; border: 1.5px dashed var(--blue-mid); border-radius: var(--radius); padding: 7px 14px; cursor: pointer; font-family: inherit; transition: background 0.15s; margin-top: 4px; }
+.add-cable-btn:hover { background: var(--blue-light); }
+.photo-section { margin-bottom: 1.25rem; }
+.photo-section-title { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+.photo-section-desc { font-size: 12px; color: var(--text-3); margin-bottom: 8px; }
+.upload-zone { border: 2px dashed var(--border); border-radius: var(--radius); padding: 1.25rem; text-align: center; cursor: pointer; transition: border-color 0.15s, background 0.15s; background: var(--white); position: relative; }
+.upload-zone:hover, .upload-zone.drag-over { border-color: var(--blue); background: var(--blue-light); }
+.upload-zone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+.upload-icon { color: var(--text-3); margin-bottom: 6px; }
+.upload-text { font-size: 13px; color: var(--text-2); }
+.upload-text strong { color: var(--blue); }
+.upload-subtext { font-size: 11px; color: var(--text-3); margin-top: 2px; }
+.file-list { margin-top: 8px; display: flex; flex-direction: column; gap: 4px; }
+.file-item { display: flex; align-items: center; justify-content: space-between; background: var(--green-light); border: 1px solid #b7e8d5; border-radius: 6px; padding: 6px 10px; font-size: 12px; }
+.file-item-name { color: var(--green); font-weight: 500; display: flex; align-items: center; gap: 5px; overflow: hidden; }
+.file-item-name span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.file-remove-btn { background: none; border: none; cursor: pointer; color: var(--text-3); padding: 2px; border-radius: 3px; flex-shrink: 0; }
+.file-remove-btn:hover { color: var(--red); }
+.info-box { background: var(--blue-light); border: 1px solid var(--blue-mid); border-radius: var(--radius); padding: 0.9rem 1rem; font-size: 13px; color: var(--blue); margin-bottom: 1.25rem; display: flex; gap: 10px; align-items: flex-start; line-height: 1.5; }
+.review-group { margin-bottom: 1.25rem; }
+.review-group-title { font-size: 11px; font-weight: 600; color: var(--blue); text-transform: uppercase; letter-spacing: 1.1px; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+.review-group-title::after { content: ''; flex: 1; height: 1px; background: var(--blue-light); }
+.review-card { background: var(--white); border: 1.5px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+.review-row { display: flex; justify-content: space-between; align-items: flex-start; padding: 9px 14px; font-size: 13px; border-bottom: 1px solid #f3f4f6; gap: 16px; }
+.review-row:last-child { border-bottom: none; }
+.r-label { color: var(--text-3); white-space: nowrap; flex-shrink: 0; }
+.r-val { color: var(--text); font-weight: 500; text-align: right; word-break: break-word; }
+.review-photos { padding: 10px 14px; }
+.review-photos-title { font-size: 12px; color: var(--text-3); margin-bottom: 6px; }
+.review-photo-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.review-photo-chip { background: var(--green-light); color: var(--green); border: 1px solid #b7e8d5; border-radius: 5px; padding: 3px 8px; font-size: 11px; font-weight: 500; }
+.nav { display: flex; justify-content: space-between; align-items: center; margin-top: 2.25rem; padding-top: 1.25rem; border-top: 1px solid var(--border); }
+.btn { padding: 10px 22px; border-radius: var(--radius); font-size: 14px; font-weight: 600; cursor: pointer; border: 1.5px solid var(--border); background: var(--white); color: var(--text-2); font-family: inherit; transition: background 0.15s; }
+.btn:hover:not(:disabled) { background: #f5f5f5; }
+.btn.primary { background: var(--blue); color: var(--white); border-color: var(--blue); }
+.btn.primary:hover:not(:disabled) { background: var(--blue-dark); }
+.btn:disabled { opacity: 0.38; cursor: not-allowed; }
+.success { text-align: center; padding: 3rem 0 2rem; }
+.success-icon { width: 64px; height: 64px; border-radius: 50%; background: var(--green-light); display: flex; align-items: center; justify-content: center; margin: 0 auto 1.25rem; }
+.success-title { font-size: 22px; font-weight: 600; color: var(--text); margin-bottom: 8px; }
+.success-sub { font-size: 14px; color: var(--text-2); max-width: 360px; margin: 0 auto 1.5rem; line-height: 1.7; }
+.success-contact { font-size: 13px; color: var(--text-3); }
+.success-contact a { color: var(--blue); text-decoration: none; }
+.print-btn { display: inline-flex; align-items: center; gap: 7px; margin-top: 1.25rem; padding: 9px 20px; background: var(--bg); border: 1.5px solid var(--border); border-radius: var(--radius); font-size: 13px; font-weight: 600; color: var(--text-2); cursor: pointer; font-family: inherit; }
+.submit-overlay { display: none; position: fixed; inset: 0; background: rgba(255,255,255,0.92); z-index: 999; align-items: center; justify-content: center; flex-direction: column; gap: 16px; }
+.submit-overlay.show { display: flex; }
+.submit-spinner { width: 40px; height: 40px; border: 3px solid var(--blue-mid); border-top-color: var(--blue); border-radius: 50%; animation: spin 0.8s linear infinite; }
+.submit-overlay-text { font-size: 15px; font-weight: 500; color: var(--text-2); }
+@keyframes spin { to { transform: rotate(360deg); } }
+.conditional { display: none; }
+.conditional.show { display: block; }
+@media print { body { background: #fff; } .nav, .print-btn, .gate { display: none; } .section { display: block !important; } .progress-wrap { display: none; } .page { display: block !important; } }
+</style>
+</head>
+<body>
 
+<div class="gate" id="gate">
+  <div class="gate-card">
+    <div class="gate-logo">
+      <div class="gate-logo-mark"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
+      <div class="gate-logo-text">LINOK <span>Precision Dairy Solutions</span></div>
+    </div>
+    <div class="gate-title">Pre-Installation Site Survey</div>
+    <div class="gate-desc">This form is for authorized use only.<br>Please enter your access code to continue.</div>
+    <input class="gate-input" type="password" id="gate_input" placeholder="••••••••••" onkeydown="if(event.key==='Enter')checkCode()">
+    <button class="gate-btn" onclick="checkCode()">Enter →</button>
+    <div class="gate-error" id="gate_error"></div>
+  </div>
+</div>
 
-// ================================================================
-//  doPost — נקודת הכניסה לטופס
-// ================================================================
-function doPost(e) {
-  try {
-    var payload = JSON.parse(e.postData.contents);
+<div class="submit-overlay" id="submit_overlay">
+  <div class="submit-spinner"></div>
+  <div class="submit-overlay-text" id="submit_overlay_text">Saving your responses…</div>
+</div>
 
-    if (payload.action === 'saveForm') {
-      return saveFormData(payload.data);
-    }
-    if (payload.action === 'uploadPhoto') {
-      return uploadPhoto(payload);
-    }
+<div class="page" id="main_page">
+  <div class="header">
+    <div class="header-logo-mark"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
+    <div><div class="logo-text">LINOK <span>Pre-Installation Site Survey</span></div></div>
+  </div>
+  <div class="progress-wrap">
+    <div class="steps-row" id="steps_row"></div>
+    <div class="progress-label" id="prog_label">Step 1 of 7</div>
+  </div>
 
-    return jsonOk({ status: 'error', message: 'Unknown action' });
-  } catch (err) {
-    return jsonOk({ status: 'error', message: err.toString() });
+  <div class="section active" id="s1">
+    <div class="section-badge">Section 1 of 7</div>
+    <div class="section-title">Farm Details</div>
+    <div class="section-desc">Basic information about your operation and who we should contact on-site.</div>
+    <div class="two-col">
+      <div class="field"><label>Farm / Operation Name <span class="req">*</span></label><input type="text" id="farm_name" placeholder="e.g. Smith Family Dairy"><div class="field-error" id="err_farm_name">Please enter the farm name</div></div>
+      <div class="field"><label>On-Site Contact Person <span class="req">*</span></label><input type="text" id="contact_name" placeholder="Full name"><div class="field-error" id="err_contact_name">Please enter a contact name</div></div>
+    </div>
+    <div class="two-col">
+      <div class="field"><label>Contact Phone Number <span class="req">*</span></label><input type="tel" id="phone" placeholder="+1 (555) 000-0000"><div class="field-error" id="err_phone">Please enter a phone number</div></div>
+      <div class="field"><label>Email Address</label><input type="email" id="email" placeholder="you@farm.com"></div>
+    </div>
+    <div class="field"><label>Farm Address</label><input type="text" id="address" placeholder="Street, City, State, ZIP"></div>
+  </div>
+
+  <div class="section" id="s2">
+    <div class="section-badge">Section 2 of 7</div>
+    <div class="section-title">Milking Setup</div>
+    <div class="section-desc">Tell us about your milking parlor so we can plan the right configuration.</div>
+    <div class="field"><label>Milking Parlor Type <span class="req">*</span></label><div class="radio-group" id="rg_parlor"><label class="radio-opt"><input type="radio" name="parlor" value="Herringbone">Herringbone</label><label class="radio-opt"><input type="radio" name="parlor" value="Parallel">Parallel</label><label class="radio-opt"><input type="radio" name="parlor" value="Rotary">Rotary</label><label class="radio-opt"><input type="radio" name="parlor" value="Other">Other</label></div><div class="field-error" id="err_parlor">Please select a parlor type</div></div>
+    <div class="two-col">
+      <div class="field"><label>Total Number of Milking Stalls <span class="req">*</span></label><input type="number" id="stalls" placeholder="e.g. 24" min="1"><div class="field-error" id="err_stalls">Please enter number of stalls</div></div>
+      <div class="field"><label>Number of Rows</label><input type="number" id="rows" placeholder="e.g. 2" min="1"></div>
+    </div>
+    <div class="two-col">
+      <div class="field"><label>Total Herd Size (cows)</label><input type="number" id="cows" placeholder="e.g. 300" min="1"></div>
+      <div class="field"><label>Daily Milkings</label><select id="milkings"><option value="">Select…</option><option>2 times/day</option><option>3 times/day</option><option>Other</option></select></div>
+    </div>
+    <div class="field"><label>Milking Schedule</label><div class="hint">Approximate shift times — e.g. 5:00 AM / 1:00 PM / 9:00 PM</div><input type="text" id="schedule" placeholder="e.g. 5:00 AM / 1:00 PM / 9:00 PM"></div>
+    <div class="field"><label>Current Herd Management Software</label><div class="hint">e.g. PC DART, DairyComp 305 — leave blank if none</div><input type="text" id="hms" placeholder="e.g. DairyComp 305"></div>
+  </div>
+
+  <div class="section" id="s3">
+    <div class="section-badge">Section 3 of 7</div>
+    <div class="section-title">Power & Network</div>
+    <div class="section-desc">We need to verify your electrical and network setup before we arrive.</div>
+    <div class="section-sub">Internet & Router</div>
+    <div class="field"><label>Is there an internet connection / router on-site? <span class="req">*</span></label><div class="radio-group" id="rg_internet"><label class="radio-opt"><input type="radio" name="internet" value="Yes">Yes</label><label class="radio-opt"><input type="radio" name="internet" value="No">No</label></div><div class="field-error" id="err_internet">Please select one</div></div>
+    <div class="field"><label>Main Router Location</label><div class="hint">Where is it? Are there free ports available?</div><input type="text" id="router_loc" placeholder="e.g. Farm office — 3 free ports"></div>
+    <div class="divider"></div>
+    <div class="section-sub">Power</div>
+    <div class="field"><label>Are there 110V/220V power outlets near the router and planned PoE locations? <span class="req">*</span></label><div class="radio-group" id="rg_power"><label class="radio-opt"><input type="radio" name="power" value="Yes">Yes</label><label class="radio-opt"><input type="radio" name="power" value="No">No</label><label class="radio-opt"><input type="radio" name="power" value="Not sure">Not sure</label></div><div class="field-error" id="err_power">Please select one</div></div>
+    <div class="conditional" id="cond_outlets"><div class="field"><label>How many outlets are available?</label><input type="number" id="outlet_count" placeholder="e.g. 4" min="1" style="max-width:150px"></div></div>
+    <div class="field"><label>Backup generator on the farm?</label><div class="radio-group" id="rg_gen"><label class="radio-opt"><input type="radio" name="gen" value="Yes">Yes</label><label class="radio-opt"><input type="radio" name="gen" value="No">No</label></div></div>
+    <div class="divider"></div>
+    <div class="section-sub">PoE Switch Location</div>
+    <div class="field"><label>Designated area for PoE switches</label><div class="hint">Where is the planned location? Describe the area.</div><textarea id="poe_location" placeholder="e.g. On the wall next to the parlor entrance…" style="min-height:70px;"></textarea></div>
+    <div class="divider"></div>
+    <div class="section-sub">On-Site Technical Contact</div>
+    <div class="two-col">
+      <div class="field"><label>Technical Contact Name</label><input type="text" id="tech_name" placeholder="Full name"></div>
+      <div class="field"><label>Technical Contact Phone</label><input type="tel" id="tech_phone" placeholder="+1 (555) 000-0000"></div>
+    </div>
+  </div>
+
+  <div class="section" id="s4">
+    <div class="section-badge">Section 4 of 7</div>
+    <div class="section-title">Cable Measurements</div>
+    <div class="section-desc">We need these distances to prepare the right cables before arrival. Estimates are fine.</div>
+    <div class="info-box"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>You can use feet or meters — just note the unit (ft / m) next to each number.</div>
+    <div class="cable-card"><div class="cable-card-title">→ Router → PoE Switch area</div><div class="field"><input type="text" id="dist_router_poe" placeholder="e.g. 30 ft" style="max-width:180px; font-family:'DM Mono',monospace;"></div></div>
+    <div class="cable-card"><div class="cable-card-title">→ PoE Switch → Nearest stall</div><div class="field"><input type="text" id="dist_poe_near" placeholder="e.g. 10 ft" style="max-width:180px; font-family:'DM Mono',monospace;"></div></div>
+    <div class="cable-card"><div class="cable-card-title">→ PoE Switch → Farthest stall</div><div class="field"><input type="text" id="dist_poe_far" placeholder="e.g. 65 ft" style="max-width:180px; font-family:'DM Mono',monospace;"></div></div>
+    <div class="cable-card"><div class="cable-card-title">→ Cows' entrance → PoE Switch / network cabinet</div><div class="field"><input type="text" id="dist_entry_poe" placeholder="e.g. 20 ft" style="max-width:180px; font-family:'DM Mono',monospace;"></div></div>
+    <div class="section-sub">Individual CAT6 cables</div>
+    <div class="hint" style="margin-bottom:10px;">List each cable with its length. Add as many as needed.</div>
+    <div id="cable_list">
+      <div class="cable-list-item"><span class="cable-num">1.</span><input type="text" placeholder="e.g. 15 ft — Router to switch" class="cable-entry" style="font-family:'DM Mono',monospace; font-size:13px;"><button class="cable-remove" onclick="removeCable(this)" title="Remove"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
+    </div>
+    <button class="add-cable-btn" onclick="addCable()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Add cable</button>
+  </div>
+
+  <div class="section" id="s5">
+    <div class="section-badge">Section 5 of 7</div>
+    <div class="section-title">Physical Infrastructure & RFID</div>
+    <div class="section-desc">Details about the parlor space and entry point for the MIKA / RFID system.</div>
+    <div class="section-sub">Parlor Structure</div>
+    <div class="field"><label>Wall material in the parlor</label><div class="radio-group" id="rg_wall"><label class="radio-opt"><input type="radio" name="wall" value="Concrete">Concrete</label><label class="radio-opt"><input type="radio" name="wall" value="Brick">Brick</label><label class="radio-opt"><input type="radio" name="wall" value="Metal">Metal</label><label class="radio-opt"><input type="radio" name="wall" value="Other">Other</label></div></div>
+    <div class="field"><label>Clear wall space (~50 cm) next to each stall?</label><div class="radio-group" id="rg_wspace"><label class="radio-opt"><input type="radio" name="wspace" value="Yes">Yes, all stalls</label><label class="radio-opt"><input type="radio" name="wspace" value="Some stalls">Some stalls</label><label class="radio-opt"><input type="radio" name="wspace" value="No">No</label></div></div>
+    <div class="section-sub">Parlor Entry</div>
+    <div class="two-col">
+      <div class="field"><label>Number of entry points</label><input type="number" id="entry_points" placeholder="e.g. 1" min="1"></div>
+      <div class="field"><label>Entry gate width</label><input type="text" id="gate_width" placeholder="e.g. 80 cm / 32 in"></div>
+    </div>
+    <div class="field"><label>Floor type at entry</label><select id="floor_type"><option value="">Select…</option><option>Concrete</option><option>Rubber mat over concrete</option><option>Other</option></select></div>
+    <div class="divider"></div>
+    <div class="section-sub">RFID Mounting</div>
+    <div class="field"><label>Alternative RFID mounting — iron poles at entrance?</label><div class="hint">In case we cannot mount to the concrete floor, are there existing iron poles we can use?</div><div class="radio-group" id="rg_rfid"><label class="radio-opt"><input type="radio" name="rfid" value="Yes">Yes</label><label class="radio-opt"><input type="radio" name="rfid" value="No">No</label><label class="radio-opt"><input type="radio" name="rfid" value="Not sure">Not sure</label></div></div>
+  </div>
+
+  <div class="section" id="s6">
+    <div class="section-badge">Section 6 of 7</div>
+    <div class="section-title">Photos</div>
+    <div class="section-desc">Photos help us prepare the installation plan. All photos will be saved to a secure Google Drive folder.</div>
+    <div class="info-box"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>Photos are optional but very helpful. Max 10 MB per file. JPG, PNG, HEIC, or MP4.</div>
+
+    <div class="photo-section">
+      <div class="photo-section-title">Router Location</div><div class="photo-section-desc">Show the router, available ports, and surrounding area.</div>
+      <div class="upload-zone" id="uz_router" ondragover="handleDragOver(event,'uz_router')" ondragleave="handleDragLeave('uz_router')" ondrop="handleDrop(event,'photos_router')"><input type="file" id="photos_router" accept="image/*,video/mp4" multiple onchange="handleFiles('photos_router','ul_router')"><div class="upload-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div><div class="upload-text"><strong>Click to upload</strong> or drag & drop</div><div class="upload-subtext">JPG, PNG, HEIC, MP4 — max 10 MB each</div></div>
+      <div class="file-list" id="ul_router"></div>
+    </div>
+
+    <div class="photo-section">
+      <div class="photo-section-title">Power Outlets</div><div class="photo-section-desc">Show available outlets near the router and planned PoE locations.</div>
+      <div class="upload-zone" id="uz_power" ondragover="handleDragOver(event,'uz_power')" ondragleave="handleDragLeave('uz_power')" ondrop="handleDrop(event,'photos_power')"><input type="file" id="photos_power" accept="image/*,video/mp4" multiple onchange="handleFiles('photos_power','ul_power')"><div class="upload-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div><div class="upload-text"><strong>Click to upload</strong> or drag & drop</div><div class="upload-subtext">JPG, PNG, HEIC, MP4 — max 10 MB each</div></div>
+      <div class="file-list" id="ul_power"></div>
+    </div>
+
+    <div class="photo-section">
+      <div class="photo-section-title">PoE Switch / Network Cabinet Area</div><div class="photo-section-desc">Show the designated location for the PoE switches.</div>
+      <div class="upload-zone" id="uz_poe" ondragover="handleDragOver(event,'uz_poe')" ondragleave="handleDragLeave('uz_poe')" ondrop="handleDrop(event,'photos_poe')"><input type="file" id="photos_poe" accept="image/*,video/mp4" multiple onchange="handleFiles('photos_poe','ul_poe')"><div class="upload-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div><div class="upload-text"><strong>Click to upload</strong> or drag & drop</div><div class="upload-subtext">JPG, PNG, HEIC, MP4 — max 10 MB each</div></div>
+      <div class="file-list" id="ul_poe"></div>
+    </div>
+
+    <div class="photo-section">
+      <div class="photo-section-title">MIKA Installation Area</div><div class="photo-section-desc">Show where the MIKA system will be installed.</div>
+      <div class="upload-zone" id="uz_mika" ondragover="handleDragOver(event,'uz_mika')" ondragleave="handleDragLeave('uz_mika')" ondrop="handleDrop(event,'photos_mika')"><input type="file" id="photos_mika" accept="image/*,video/mp4" multiple onchange="handleFiles('photos_mika','ul_mika')"><div class="upload-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div><div class="upload-text"><strong>Click to upload</strong> or drag & drop</div><div class="upload-subtext">JPG, PNG, HEIC, MP4 — max 10 MB each</div></div>
+      <div class="file-list" id="ul_mika"></div>
+    </div>
+
+    <div class="photo-section">
+      <div class="photo-section-title">Iron Poles (if applicable)</div><div class="photo-section-desc">If you answered Yes to iron poles — upload clear photos here.</div>
+      <div class="upload-zone" id="uz_poles" ondragover="handleDragOver(event,'uz_poles')" ondragleave="handleDragLeave('uz_poles')" ondrop="handleDrop(event,'photos_poles')"><input type="file" id="photos_poles" accept="image/*,video/mp4" multiple onchange="handleFiles('photos_poles','ul_poles')"><div class="upload-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div><div class="upload-text"><strong>Click to upload</strong> or drag & drop</div><div class="upload-subtext">JPG, PNG, HEIC, MP4 — max 10 MB each</div></div>
+      <div class="file-list" id="ul_poles"></div>
+    </div>
+
+    <div class="photo-section">
+      <div class="photo-section-title">Panoramic View / Video of Milking Parlor</div><div class="photo-section-desc">Wide shots showing the stalls. Videos are welcome.</div>
+      <div class="upload-zone" id="uz_panorama" ondragover="handleDragOver(event,'uz_panorama')" ondragleave="handleDragLeave('uz_panorama')" ondrop="handleDrop(event,'photos_panorama')"><input type="file" id="photos_panorama" accept="image/*,video/mp4" multiple onchange="handleFiles('photos_panorama','ul_panorama')"><div class="upload-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div><div class="upload-text"><strong>Click to upload</strong> or drag & drop</div><div class="upload-subtext">JPG, PNG, HEIC, MP4 — max 10 MB each</div></div>
+      <div class="file-list" id="ul_panorama"></div>
+    </div>
+
+    <div class="photo-section">
+      <div class="photo-section-title">Cows' Entrance Area & Gates</div><div class="photo-section-desc">Photos from different angles of the entrance area.</div>
+      <div class="upload-zone" id="uz_entrance" ondragover="handleDragOver(event,'uz_entrance')" ondragleave="handleDragLeave('uz_entrance')" ondrop="handleDrop(event,'photos_entrance')"><input type="file" id="photos_entrance" accept="image/*,video/mp4" multiple onchange="handleFiles('photos_entrance','ul_entrance')"><div class="upload-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div><div class="upload-text"><strong>Click to upload</strong> or drag & drop</div><div class="upload-subtext">JPG, PNG, HEIC, MP4 — max 10 MB each</div></div>
+      <div class="file-list" id="ul_entrance"></div>
+    </div>
+  </div>
+
+  <div class="section" id="s7">
+    <div class="section-badge">Section 7 of 7</div>
+    <div class="section-title">Additional Notes</div>
+    <div class="section-desc">Anything else we should know before arriving.</div>
+    <div class="field"><label>Additional information</label><div class="hint">Access restrictions, construction, preferred schedule, special equipment…</div><textarea id="notes" placeholder="Optional — any details that will help us prepare…"></textarea></div>
+    <div class="divider"></div>
+    <p style="font-size:13px; color:var(--text-3); line-height:1.6;">By submitting, you confirm this information is accurate to the best of your knowledge. LINOK will review and be in touch before your installation visit.</p>
+  </div>
+
+  <div class="section" id="s_review">
+    <div class="section-badge">Review</div>
+    <div class="section-title">Check your answers</div>
+    <div class="section-desc">Please review before submitting. You can go back to make changes.</div>
+    <div id="review_content"></div>
+  </div>
+
+  <div class="section" id="s_done">
+    <div class="success">
+      <div class="success-icon"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#1a9e6e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+      <div class="success-title">Survey submitted!</div>
+      <div class="success-sub">Thank you. Your responses and photos have been saved. The LINOK team will review everything and be in touch before your installation visit.</div>
+      <div class="success-contact">Questions? Contact <a href="mailto:support@linok.com">support@linok.com</a></div>
+      <button class="print-btn" onclick="window.print()">Print / Save as PDF</button>
+    </div>
+  </div>
+
+  <div class="nav" id="nav">
+    <button class="btn" id="btn_back" onclick="goBack()" disabled>← Back</button>
+    <button class="btn primary" id="btn_next" onclick="goNext()">Next →</button>
+  </div>
+</div>
+
+<script>
+// ─── CONFIG ────────────────────────────────────────────────
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyDCvljwaznyZukFzjipfG8JkC2Gv6ySTaI8qvRDQxn8XrCO9DBKbGly0G8HgnT-Rka/exec';
+const PASSWORD   = 'cowmoo123!';
+// ───────────────────────────────────────────────────────────
+
+const SECTIONS    = ['s1','s2','s3','s4','s5','s6','s7','s_review','s_done'];
+const TOTAL_STEPS = 7;
+let current = 0;
+const fileStores = { photos_router:[], photos_power:[], photos_poe:[], photos_mika:[], photos_poles:[], photos_panorama:[], photos_entrance:[] };
+
+function checkCode() {
+  const val = document.getElementById('gate_input').value.trim();
+  if (val === PASSWORD) {
+    document.getElementById('gate').style.display = 'none';
+    document.getElementById('main_page').style.display = 'block';
+    buildSteps(); updateUI();
+  } else {
+    document.getElementById('gate_error').textContent = 'Incorrect access code. Please try again.';
+    document.getElementById('gate_input').value = '';
+    document.getElementById('gate_input').focus();
   }
 }
 
+function buildSteps() {
+  const row = document.getElementById('steps_row'); row.innerHTML = '';
+  for (let i=0;i<TOTAL_STEPS;i++){const d=document.createElement('div');d.className='step-dot';d.id='dot_'+i;row.appendChild(d);}
+}
 
-// ================================================================
-//  שמירת נתוני הטופס ל-Sheets
-// ================================================================
-function saveFormData(d) {
-  var ss    = SpreadsheetApp.openById(SPREADSHEET_ID);
-  var sheet = ss.getSheetByName('Responses');
+function updateUI() {
+  for(let i=0;i<TOTAL_STEPS;i++){const d=document.getElementById('dot_'+i);if(!d)continue;d.className='step-dot'+(i<current?' done':i===current?' active':'');}
+  const lbl=document.getElementById('prog_label');
+  if(current<TOTAL_STEPS)lbl.textContent=`Step ${current+1} of ${TOTAL_STEPS}`;
+  else if(current===TOTAL_STEPS)lbl.textContent='Review your answers';
+  else lbl.textContent='Complete ✓';
+  document.getElementById('btn_back').disabled=current===0;
+  const nb=document.getElementById('btn_next');
+  if(current===TOTAL_STEPS-1)nb.textContent='Review →';
+  else if(current===TOTAL_STEPS)nb.textContent='Submit ✓';
+  else nb.textContent='Next →';
+  if(current>=TOTAL_STEPS+1)document.getElementById('nav').style.display='none';
+}
 
-  // יצירת תת-תיקייה לרפת הזו (FarmName — YYYY-MM-DD)
-  var farmFolder = getOrCreateFarmFolder(d.farm_name, d.timestamp);
+function goNext() {
+  if(!validateCurrent())return;
+  if(current===TOTAL_STEPS-1)buildReview();
+  if(current===TOTAL_STEPS){submitForm();return;}
+  if(current>=TOTAL_STEPS+1)return;
+  document.getElementById(SECTIONS[current]).classList.remove('active');
+  current++;
+  document.getElementById(SECTIONS[current]).classList.add('active');
+  updateUI();window.scrollTo(0,0);
+}
 
-  var row = [
-    d.timestamp,
-    d.farm_name,
-    d.contact_name,
-    d.phone,
-    d.email,
-    d.address,
-    d.parlor_type,
-    d.stalls,
-    d.rows,
-    d.herd_size,
-    d.daily_milkings,
-    d.schedule,
-    d.hms,
-    d.internet,
-    d.router_location,
-    d.power_outlets,
-    d.outlet_count,
-    d.poe_location,
-    d.generator,
-    d.tech_name,
-    d.tech_phone,
-    d.dist_router_poe,
-    d.dist_poe_near,
-    d.dist_poe_far,
-    d.dist_entry_poe,
-    d.cables,
-    d.wall_material,
-    d.wall_space,
-    d.entry_points,
-    d.gate_width,
-    d.floor_type,
-    d.rfid_poles,
-    d.notes,
-    d.total_photos,
-    farmFolder.getUrl()   // קישור ישיר לתיקיית התמונות של הרפת
+function goBack() {
+  if(current===0)return;
+  document.getElementById(SECTIONS[current]).classList.remove('active');
+  current--;
+  document.getElementById(SECTIONS[current]).classList.add('active');
+  updateUI();window.scrollTo(0,0);
+}
+
+function validateCurrent() {
+  let ok=true;
+  if(current===0)ok=req('farm_name','err_farm_name')&req('contact_name','err_contact_name')&req('phone','err_phone');
+  else if(current===1)ok=reqRadio('parlor','err_parlor')&req('stalls','err_stalls');
+  else if(current===2)ok=reqRadio('internet','err_internet')&reqRadio('power','err_power');
+  return !!ok;
+}
+
+function req(id,errId){const el=document.getElementById(id),err=document.getElementById(errId);if(!el.value.trim()){el.classList.add('error');if(err)err.classList.add('show');return false;}el.classList.remove('error');if(err)err.classList.remove('show');return true;}
+function reqRadio(name,errId){const checked=document.querySelector(`input[name="${name}"]:checked`),err=document.getElementById(errId);if(!checked){if(err)err.classList.add('show');return false;}if(err)err.classList.remove('show');return true;}
+
+document.querySelectorAll('.radio-group').forEach(group=>{
+  group.querySelectorAll('.radio-opt').forEach(opt=>{
+    opt.addEventListener('click',()=>{
+      const name=opt.querySelector('input').name;
+      document.querySelectorAll(`input[name="${name}"]`).forEach(i=>i.closest('.radio-opt').classList.remove('selected'));
+      opt.classList.add('selected');opt.querySelector('input').checked=true;
+      if(name==='power'){const val=opt.querySelector('input').value;document.getElementById('cond_outlets').classList.toggle('show',val==='Yes');}
+    });
+  });
+});
+
+let cableCount=1;
+function addCable(){cableCount++;const list=document.getElementById('cable_list');const item=document.createElement('div');item.className='cable-list-item';item.innerHTML=`<span class="cable-num">${cableCount}.</span><input type="text" placeholder="e.g. 20 ft — Stall 5 to switch" class="cable-entry" style="font-family:'DM Mono',monospace; font-size:13px;"><button class="cable-remove" onclick="removeCable(this)" title="Remove"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>`;list.appendChild(item);item.querySelector('input').focus();renumberCables();}
+function removeCable(btn){if(document.querySelectorAll('.cable-list-item').length<=1)return;btn.closest('.cable-list-item').remove();renumberCables();}
+function renumberCables(){document.querySelectorAll('.cable-list-item .cable-num').forEach((el,i)=>{el.textContent=(i+1)+'.';});cableCount=document.querySelectorAll('.cable-list-item').length;}
+function getCables(){return Array.from(document.querySelectorAll('.cable-entry')).map(i=>i.value.trim()).filter(Boolean).join(' | ');}
+
+function handleFiles(inputId,listId){const input=document.getElementById(inputId);Array.from(input.files).forEach(f=>{if(!fileStores[inputId].find(x=>x.name===f.name&&x.size===f.size))fileStores[inputId].push(f);});renderFileList(inputId,listId);input.value='';}
+function renderFileList(inputId,listId){const ul=document.getElementById(listId);ul.innerHTML='';fileStores[inputId].forEach((f,idx)=>{const item=document.createElement('div');item.className='file-item';item.innerHTML=`<div class="file-item-name"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg><span>${f.name}</span></div><button class="file-remove-btn" onclick="removeFile('${inputId}','${listId}',${idx})" title="Remove"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>`;ul.appendChild(item);});}
+function removeFile(inputId,listId,idx){fileStores[inputId].splice(idx,1);renderFileList(inputId,listId);}
+function handleDragOver(e,zoneId){e.preventDefault();document.getElementById(zoneId).classList.add('drag-over');}
+function handleDragLeave(zoneId){document.getElementById(zoneId).classList.remove('drag-over');}
+function handleDrop(e,inputId){e.preventDefault();const zoneId='uz_'+inputId.replace('photos_','');document.getElementById(zoneId).classList.remove('drag-over');const listId='ul_'+inputId.replace('photos_','');Array.from(e.dataTransfer.files).forEach(f=>{if(!fileStores[inputId].find(x=>x.name===f.name&&x.size===f.size))fileStores[inputId].push(f);});renderFileList(inputId,listId);}
+function totalPhotos(){return Object.values(fileStores).reduce((a,arr)=>a+arr.length,0);}
+function v(id){const e=document.getElementById(id);return e?e.value.trim():'';}
+function r(name){const e=document.querySelector(`input[name="${name}"]:checked`);return e?e.value:'';}
+
+function buildReview(){
+  const groups=[
+    {title:'Farm Details',rows:[['Farm Name',v('farm_name')],['Contact',v('contact_name')],['Phone',v('phone')],['Email',v('email')],['Address',v('address')]]},
+    {title:'Milking Setup',rows:[['Parlor Type',r('parlor')],['Stalls',v('stalls')],['Rows',v('rows')],['Herd Size',v('cows')?v('cows')+' cows':''],['Daily Milkings',v('milkings')],['Schedule',v('schedule')],['HMS',v('hms')||'None']]},
+    {title:'Power & Network',rows:[['Internet',r('internet')],['Router Location',v('router_loc')],['Power Outlets',r('power')],['Outlet Count',v('outlet_count')],['PoE Location',v('poe_location')],['Generator',r('gen')],['Tech Contact',[v('tech_name'),v('tech_phone')].filter(Boolean).join(' — ')]]},
+    {title:'Cable Measurements',rows:[['Router → PoE',v('dist_router_poe')],['PoE → Nearest',v('dist_poe_near')],['PoE → Farthest',v('dist_poe_far')],['Entrance → PoE',v('dist_entry_poe')],['Individual cables',getCables()]]},
+    {title:'Physical & RFID',rows:[['Wall Material',r('wall')],['Wall Space',r('wspace')],['Entry Points',v('entry_points')],['Gate Width',v('gate_width')],['Floor Type',v('floor_type')],['Iron poles',r('rfid')]]},
+    {title:'Notes',rows:[['Notes',v('notes')||'None']]}
   ];
-
-  sheet.appendRow(row);
-
-  // צביעת שורה לסירוגין לקריאות
-  var lastRow = sheet.getLastRow();
-  if (lastRow % 2 === 0) {
-    sheet.getRange(lastRow, 1, 1, row.length).setBackground('#f0f7ff');
+  let html='';
+  groups.forEach(g=>{
+    const filled=g.rows.filter(row=>row[1]);
+    if(!filled.length)return;
+    html+=`<div class="review-group"><div class="review-group-title">${g.title}</div><div class="review-card">`;
+    filled.forEach(row=>{html+=`<div class="review-row"><span class="r-label">${row[0]}</span><span class="r-val">${row[1]}</span></div>`;});
+    html+='</div></div>';
+  });
+  const photoGroups=[{label:'Router',key:'photos_router'},{label:'Power Outlets',key:'photos_power'},{label:'PoE Area',key:'photos_poe'},{label:'MIKA',key:'photos_mika'},{label:'Iron Poles',key:'photos_poles'},{label:'Panoramic',key:'photos_panorama'},{label:'Entrance',key:'photos_entrance'}];
+  if(photoGroups.some(pg=>fileStores[pg.key].length>0)){
+    html+=`<div class="review-group"><div class="review-group-title">Photos</div><div class="review-card">`;
+    photoGroups.forEach(pg=>{if(!fileStores[pg.key].length)return;html+=`<div class="review-photos"><div class="review-photos-title">${pg.label} — ${fileStores[pg.key].length} file(s)</div><div class="review-photo-list">`;fileStores[pg.key].forEach(f=>{html+=`<div class="review-photo-chip">${f.name}</div>`;});html+='</div></div>';});
+    html+='</div></div>';
   }
-
-  return jsonOk({ status: 'ok', folderUrl: farmFolder.getUrl() });
+  document.getElementById('review_content').innerHTML=html;
 }
 
-
-// ================================================================
-//  העלאת תמונה לתיקיית Drive
-// ================================================================
-function uploadPhoto(p) {
-  var farmFolder = getOrCreateFarmFolder(p.farmName, p.timestamp);
-
-  // תת-תיקייה לפי קטגוריה (Router, MIKA_Installation וכו')
-  var catFolder = getOrCreateSubFolder(farmFolder, p.category);
-
-  var blob = Utilities.newBlob(
-    Utilities.base64Decode(p.data),
-    p.mimeType,
-    p.filename
-  );
-  catFolder.createFile(blob);
-
-  return jsonOk({ status: 'ok' });
+async function submitForm(){
+  const overlay=document.getElementById('submit_overlay'),overlayText=document.getElementById('submit_overlay_text');
+  overlay.classList.add('show');
+  const farmName=v('farm_name'),timestamp=new Date().toISOString();
+  const formData={timestamp,farm_name:farmName,contact_name:v('contact_name'),phone:v('phone'),email:v('email'),address:v('address'),parlor_type:r('parlor'),stalls:v('stalls'),rows:v('rows'),herd_size:v('cows'),daily_milkings:v('milkings'),schedule:v('schedule'),hms:v('hms'),internet:r('internet'),router_location:v('router_loc'),power_outlets:r('power'),outlet_count:v('outlet_count'),poe_location:v('poe_location'),generator:r('gen'),tech_name:v('tech_name'),tech_phone:v('tech_phone'),dist_router_poe:v('dist_router_poe'),dist_poe_near:v('dist_poe_near'),dist_poe_far:v('dist_poe_far'),dist_entry_poe:v('dist_entry_poe'),cables:getCables(),wall_material:r('wall'),wall_space:r('wspace'),entry_points:v('entry_points'),gate_width:v('gate_width'),floor_type:v('floor_type'),rfid_poles:r('rfid'),notes:v('notes'),total_photos:totalPhotos()};
+  try{
+    overlayText.textContent='Saving responses…';
+    await fetch(SCRIPT_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'saveForm',data:formData})});
+    const allPhotoGroups=[{label:'Router',key:'photos_router'},{label:'Power_Outlets',key:'photos_power'},{label:'PoE_Area',key:'photos_poe'},{label:'MIKA_Installation',key:'photos_mika'},{label:'Iron_Poles',key:'photos_poles'},{label:'Panoramic',key:'photos_panorama'},{label:'Entrance_Gates',key:'photos_entrance'}];
+    let uploaded=0;const total=Object.values(fileStores).reduce((a,arr)=>a+arr.length,0);
+    for(const pg of allPhotoGroups){for(const file of fileStores[pg.key]){uploaded++;overlayText.textContent=`Uploading photos… (${uploaded}/${total})`;const base64=await fileToBase64(file);await fetch(SCRIPT_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'uploadPhoto',farmName,timestamp,category:pg.label,filename:file.name,mimeType:file.type,data:base64})});}}}
+  }catch(err){console.error('Submit error:',err);}
+  overlay.classList.remove('show');
+  document.getElementById(SECTIONS[current]).classList.remove('active');
+  current++;
+  document.getElementById(SECTIONS[current]).classList.add('active');
+  updateUI();window.scrollTo(0,0);
 }
 
+function fileToBase64(file){return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result.split(',')[1]);reader.onerror=reject;reader.readAsDataURL(file);});}
 
-// ================================================================
-//  Helpers
-// ================================================================
-
-// מחזיר (או יוצר) תיקייה בפורמט "FarmName — YYYY-MM-DD"
-function getOrCreateFarmFolder(farmName, timestamp) {
-  var root = DriveApp.getFolderById(PHOTOS_FOLDER_ID);
-  var date = timestamp
-    ? timestamp.substring(0, 10)
-    : Utilities.formatDate(new Date(), 'UTC', 'yyyy-MM-dd');
-  var name = (farmName || 'Unknown Farm') + ' — ' + date;
-  return getOrCreateSubFolder(root, name);
-}
-
-// מחזיר תת-תיקייה קיימת או יוצר חדשה
-function getOrCreateSubFolder(parent, name) {
-  var iter = parent.getFoldersByName(name);
-  return iter.hasNext() ? iter.next() : parent.createFolder(name);
-}
-
-// מחזיר JSON response (mode:no-cors מחייב 200 תמיד)
-function jsonOk(obj) {
-  return ContentService
-    .createTextOutput(JSON.stringify(obj))
-    .setMimeType(ContentService.MimeType.JSON);
-}
-
-
-// ================================================================
-//  הוראות הגדרה מלאות
-// ================================================================
-//
-//  שלב 1 — צור Apps Script
-//  ─────────────────────────
-//  1. לך ל- https://script.google.com → New project
-//  2. מחק את הקוד הקיים והדבק את כל הקובץ הזה
-//  3. שמור (Ctrl+S), תן שם לפרויקט: "LINOK Survey"
-//
-//  שלב 2 — הרץ setup
-//  ──────────────────
-//  4. בתפריט הפונקציות (ליד כפתור ▶) בחר "setup"
-//  5. לחץ ▶ Run
-//  6. אשר הרשאות (Google תבקש גישה ל-Sheets ו-Drive)
-//  7. פתח View → Logs — תראה שני IDs
-//  8. הדבק אותם ב-CONFIG בראש הקובץ:
-//       var SPREADSHEET_ID   = '1ABC...';
-//       var PHOTOS_FOLDER_ID = '1XYZ...';
-//  9. שמור שוב (Ctrl+S)
-//
-//  שלב 3 — Deploy
-//  ───────────────
-//  10. לחץ Deploy → New deployment
-//  11. Type: Web app
-//      Execute as: Me
-//      Who has access: Anyone
-//  12. לחץ Deploy → אשר הרשאות שוב אם מבקש
-//  13. העתק את ה-Web App URL
-//
-//  שלב 4 — חבר לטופס
-//  ───────────────────
-//  14. פתח את linok_farm_survey_v3.html
-//  15. מצא את השורה:
-//        const SCRIPT_URL = 'YOUR_APPS_SCRIPT_URL_HERE';
-//  16. החלף את ה-placeholder ב-URL שהעתקת
-//  17. Push ל-GitHub Pages — סיום ✅
-//
-//  מבנה ה-Drive שייווצר:
-//  ──────────────────────
-//  📁 LINOK — Survey Photos/
-//    📁 Smith Family Dairy — 2026-05-19/
-//      📁 Router/
-//      📁 MIKA_Installation/
-//      📁 Power_Outlets/
-//      📁 PoE_Area/
-//      📁 Iron_Poles/
-//      📁 Panoramic/
-//      📁 Entrance_Gates/
-//    📁 Jones Farm — 2026-05-22/
-//      ...
-// ================================================================
+buildSteps();
+updateUI();
+</script>
+</body>
+</html>
